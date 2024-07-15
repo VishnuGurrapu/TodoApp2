@@ -92,11 +92,15 @@ const authenticateToken = (request, response, next) => {
 }
 //api 3
 app.get('/user/tweets/feed/', authenticateToken, async (request, response) => {
+  const {username} = request
+  const getUserId = `SELECT user_id FROM user WHERE username='${username}'`
+  const userId = await db.get(getUserId)
   const gettweetsQuery = `
     SELECT u.username, t.tweet, t.date_time
 FROM User AS u
 INNER JOIN Follower AS f ON u.user_id = f.follower_user_id
 INNER JOIN Tweet AS t ON f.following_user_id = t.user_id
+WHERE f.follower_user_id= '${userId}'
 ORDER BY t.date_time DESC 
 LIMIT 4;`
   const tweet = await db.all(gettweetsQuery)
@@ -104,22 +108,30 @@ LIMIT 4;`
 })
 //api4
 app.get('/user/following/', authenticateToken, async (request, response) => {
+  const {username} = request
+  const getUserId = `SELECT user_id FROM user WHERE username='${username}'`
+  const userId = await db.get(getUserId)
   const getfollowingQuery = `
     SELECT u2.name
 FROM User AS u1
 INNER JOIN Follower AS f ON u1.user_id = f.follower_user_id
 INNER JOIN User AS u2 ON f.following_user_id = u2.user_id
+WHERE u2.user_id= '${userId}'
 ORDER BY u1.name;`
   const query = await db.all(getfollowingQuery)
   response.send(query)
 })
 //api5
 app.get('/user/followers/', authenticateToken, async (request, response) => {
+  const {username} = request
+  const getUserId = `SELECT user_id FROM user WHERE username='${username}'`
+  const userId = await db.get(getUserId)
   const getfollowingQuery = `
     SELECT u1.name
 FROM User AS u1
 INNER JOIN Follower AS f ON u1.user_id = f.following_user_id
 INNER JOIN User AS u2 ON f.follower_user_id = u2.user_id
+WHERE u2.user_id='${userId}'
 ORDER BY u2.name;`
   const query = await db.all(getfollowingQuery)
   response.send(query)
@@ -198,11 +210,12 @@ app.get('/user/tweets/', authenticateToken, async (request, response) => {
 
 app.post('/user/tweets/', authenticateToken, async (request, response) => {
   const {tweet} = request.body
-  const {user_id} = request
-
+  const {username} = request
+  const getUserId = `SELECT user_id FROM user WHERE username='${username}'`
+  const userId = await db.get(getUserId)
   const getfollowingQuery = `
-    INSERT INTO TweetTable (tweet, user_id, date_time)
-            VALUES ('${tweet}',${user_id}, NOW());`
+    INSERT INTO tweet (tweet, user_id, date_time)
+            VALUES ('${tweet}',${userId},CURRENT_TIMESTAMP);`
   await db.run(getfollowingQuery)
   response.send('Created a Tweet')
 })
